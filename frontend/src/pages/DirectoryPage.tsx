@@ -4,16 +4,43 @@ import { Alert } from "../components/Alert";
 import { Loading } from "../components/Loading";
 import type { DirectoryItem, Employee, StatusItem } from "../types";
 import { AppLink } from "../router";
+import {
+  type TranslationKey,
+  useLanguage,
+} from "../contexts/LanguageContext";
 
 type Section = "organizations" | "employees" | "device-types" | "conditions" | "statuses";
 type Item = DirectoryItem | Employee | StatusItem;
 
-const sections: Record<Section, { title: string; endpoint: string; singular: string }> = {
-  organizations: { title: "Организации", endpoint: "/organizations", singular: "организацию" },
-  employees: { title: "Сотрудники", endpoint: "/employees", singular: "сотрудника" },
-  "device-types": { title: "Виды техники", endpoint: "/device-types", singular: "вид техники" },
-  conditions: { title: "Состояния техники", endpoint: "/conditions", singular: "состояние" },
-  statuses: { title: "Статусы документов", endpoint: "/document-statuses", singular: "статус" },
+const sections: Record<
+  Section,
+  { titleKey: TranslationKey; addKey: TranslationKey; endpoint: string }
+> = {
+  organizations: {
+    titleKey: "directories.organizations",
+    addKey: "directories.addOrganization",
+    endpoint: "/organizations",
+  },
+  employees: {
+    titleKey: "directories.employees",
+    addKey: "directories.addEmployee",
+    endpoint: "/employees",
+  },
+  "device-types": {
+    titleKey: "directories.deviceTypes",
+    addKey: "directories.addDeviceType",
+    endpoint: "/device-types",
+  },
+  conditions: {
+    titleKey: "directories.conditions",
+    addKey: "directories.addCondition",
+    endpoint: "/conditions",
+  },
+  statuses: {
+    titleKey: "directories.statuses",
+    addKey: "directories.addStatus",
+    endpoint: "/document-statuses",
+  },
 };
 
 function isEmployee(item: Item): item is Employee {
@@ -25,6 +52,7 @@ function isStatus(item: Item): item is StatusItem {
 }
 
 export function DirectoryPage({ section = "organizations" }: { section?: Section }) {
+  const { t } = useLanguage();
   const current = sections[section] ?? sections.organizations;
   const [items, setItems] = useState<Item[]>([]);
   const [organizations, setOrganizations] = useState<DirectoryItem[]>([]);
@@ -90,11 +118,11 @@ export function DirectoryPage({ section = "organizations" }: { section?: Section
     setError(null);
     setSuccess(null);
     if (!name.trim()) {
-      setError("Заполните наименование");
+      setError(t("directories.fillName"));
       return;
     }
     if (section === "employees" && !organizationId) {
-      setError("Выберите организацию");
+      setError(t("directories.chooseOrganization"));
       return;
     }
     const payload =
@@ -107,7 +135,7 @@ export function DirectoryPage({ section = "organizations" }: { section?: Section
     try {
       if (editingId) await api.put(`${current.endpoint}/${editingId}`, payload);
       else await api.post(current.endpoint, payload);
-      setSuccess(editingId ? "Изменения сохранены" : "Запись создана");
+      setSuccess(editingId ? t("directories.saved") : t("directories.created"));
       resetForm();
       await load();
     } catch (err) {
@@ -119,11 +147,11 @@ export function DirectoryPage({ section = "organizations" }: { section?: Section
 
   const remove = async (item: Item) => {
     const label = isEmployee(item) ? item.full_name : item.name;
-    if (!window.confirm(`Удалить «${label}»? Это действие нельзя отменить.`)) return;
+    if (!window.confirm(t("directories.confirmDelete", { name: label }))) return;
     setError(null);
     try {
       await api.delete(`${current.endpoint}/${item.id}`);
-      setSuccess("Запись удалена");
+      setSuccess(t("directories.deleted"));
       await load();
     } catch (err) {
       setError(errorMessage(err));
@@ -134,19 +162,22 @@ export function DirectoryPage({ section = "organizations" }: { section?: Section
     <>
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div>
-          <span className="page-kicker">Reference data / directory control</span>
-          <h1 className="h3 mt-2 mb-2">{current.title}</h1>
-          <p className="text-body-secondary mb-0">Управление справочными данными</p>
+          <span className="page-kicker">{t("directories.kicker")}</span>
+          <h1 className="h3 mt-2 mb-2">{t(current.titleKey)}</h1>
+          <p className="text-body-secondary mb-0">{t("directories.description")}</p>
         </div>
       </div>
-      <nav className="nav nav-pills flex-nowrap overflow-x-auto gap-1 mb-4" aria-label="Справочники">
+      <nav
+        className="nav nav-pills flex-nowrap overflow-x-auto gap-1 mb-4"
+        aria-label={t("directories.label")}
+      >
         {(Object.keys(sections) as Section[]).map((key) => (
           <AppLink
             key={key}
             to={`/directories/${key}`}
             className={(isActive) => `nav-link text-nowrap ${isActive ? "active" : ""}`}
           >
-            {sections[key].title}
+            {t(sections[key].titleKey)}
           </AppLink>
         ))}
       </nav>
@@ -156,13 +187,13 @@ export function DirectoryPage({ section = "organizations" }: { section?: Section
         <div className="col-12 col-xl-4">
           <section className="card shadow-sm">
             <div className="card-header bg-body fw-semibold">
-              {editingId ? "Редактирование" : `Добавить ${current.singular}`}
+              {editingId ? t("directories.editing") : t(current.addKey)}
             </div>
             <div className="card-body">
               <form onSubmit={(event) => void submit(event)}>
                 <div className="mb-3">
                   <label className="form-label" htmlFor="directoryName">
-                    {section === "employees" ? "ФИО" : "Наименование"}
+                    {section === "employees" ? t("directories.fullName") : t("common.name")}
                   </label>
                   <input
                     id="directoryName"
@@ -175,7 +206,9 @@ export function DirectoryPage({ section = "organizations" }: { section?: Section
                 </div>
                 {section === "employees" && (
                   <div className="mb-3">
-                    <label className="form-label" htmlFor="organization">Организация</label>
+                    <label className="form-label" htmlFor="organization">
+                      {t("common.organization")}
+                    </label>
                     <select
                       id="organization"
                       className="form-select"
@@ -183,7 +216,7 @@ export function DirectoryPage({ section = "organizations" }: { section?: Section
                       onChange={(event) => setOrganizationId(event.target.value)}
                       required
                     >
-                      <option value="">Выберите организацию</option>
+                      <option value="">{t("directories.selectOrganization")}</option>
                       {organizations.map((organization) => (
                         <option key={organization.id} value={organization.id}>{organization.name}</option>
                       ))}
@@ -199,17 +232,19 @@ export function DirectoryPage({ section = "organizations" }: { section?: Section
                       checked={isClosed}
                       onChange={(event) => setIsClosed(event.target.checked)}
                     />
-                    <label className="form-check-label" htmlFor="isClosed">Закрывающий статус</label>
+                    <label className="form-check-label" htmlFor="isClosed">
+                      {t("directories.closingStatus")}
+                    </label>
                   </div>
                 )}
                 <div className="d-flex gap-2">
                   <button className="btn btn-primary" disabled={saving}>
                     {saving && <span className="spinner-border spinner-border-sm me-2" />}
-                    {editingId ? "Сохранить" : "Добавить"}
+                    {editingId ? t("common.save") : t("common.add")}
                   </button>
                   {editingId && (
                     <button type="button" className="btn btn-outline-secondary" onClick={resetForm}>
-                      Отмена
+                      {t("common.cancel")}
                     </button>
                   )}
                 </div>
@@ -220,7 +255,7 @@ export function DirectoryPage({ section = "organizations" }: { section?: Section
         <div className="col-12 col-xl-8">
           <section className="card shadow-sm">
             <div className="card-header bg-body d-flex justify-content-between align-items-center">
-              <span className="fw-semibold">Записи</span>
+              <span className="fw-semibold">{t("common.records")}</span>
               <span className="badge text-bg-secondary">{items.length}</span>
             </div>
             {loading ? <Loading /> : (
@@ -228,27 +263,51 @@ export function DirectoryPage({ section = "organizations" }: { section?: Section
                 <table className="table table-hover align-middle mb-0">
                   <thead>
                     <tr>
-                      <th>{section === "employees" ? "ФИО" : "Наименование"}</th>
-                      {section === "employees" && <th>Организация</th>}
-                      {section === "statuses" && <th>Тип</th>}
-                      <th className="text-end">Действия</th>
+                      <th>
+                        {section === "employees" ? t("directories.fullName") : t("common.name")}
+                      </th>
+                      {section === "employees" && <th>{t("common.organization")}</th>}
+                      {section === "statuses" && <th>{t("directories.type")}</th>}
+                      <th className="text-end">{t("common.actions")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {items.length === 0 ? (
-                      <tr><td colSpan={3} className="text-center text-body-secondary py-5">Записей пока нет</td></tr>
+                      <tr>
+                        <td colSpan={3} className="text-center text-body-secondary py-5">
+                          {t("directories.empty")}
+                        </td>
+                      </tr>
                     ) : items.map((item) => (
                       <tr key={item.id}>
                         <td className="fw-medium">{isEmployee(item) ? item.full_name : item.name}</td>
                         {section === "employees" && <td>{isEmployee(item) ? item.organization.name : selectedOrganization?.name}</td>}
                         {section === "statuses" && (
-                          <td>{isStatus(item) && item.is_closed ? <span className="badge text-bg-secondary">Закрывающий</span> : <span className="badge text-bg-success">Активный</span>}</td>
+                          <td>
+                            {isStatus(item) && item.is_closed ? (
+                              <span className="badge text-bg-secondary">
+                                {t("common.closing")}
+                              </span>
+                            ) : (
+                              <span className="badge text-bg-success">
+                                {t("common.active")}
+                              </span>
+                            )}
+                          </td>
                         )}
                         <td className="text-end text-nowrap">
-                          <button className="btn btn-sm btn-outline-primary me-2" onClick={() => startEdit(item)} aria-label="Редактировать">
+                          <button
+                            className="btn btn-sm btn-outline-primary me-2"
+                            onClick={() => startEdit(item)}
+                            aria-label={t("common.edit")}
+                          >
                             <i className="bi bi-pencil" />
                           </button>
-                          <button className="btn btn-sm btn-outline-danger" onClick={() => void remove(item)} aria-label="Удалить">
+                          <button
+                            className="btn btn-sm btn-outline-danger"
+                            onClick={() => void remove(item)}
+                            aria-label={t("common.delete")}
+                          >
                             <i className="bi bi-trash" />
                           </button>
                         </td>

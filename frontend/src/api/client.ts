@@ -1,5 +1,6 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 import type { TokenResponse } from "../types";
+import { localizeApiMessage } from "../contexts/LanguageContext";
 
 const api = axios.create({
   baseURL: "/api",
@@ -76,11 +77,17 @@ api.interceptors.response.use(
 export function errorMessage(error: unknown): string {
   if (axios.isAxiosError<{ detail?: string | Array<{ msg: string }> }>(error)) {
     const detail = error.response?.data?.detail;
-    if (typeof detail === "string") return detail;
+    if (typeof detail === "string") return localizeApiMessage(detail);
     if (Array.isArray(detail)) return detail.map((item) => item.msg).join(", ");
-    if (error.code === "ECONNABORTED") return "Сервер не ответил вовремя";
+    if (error.code === "ECONNABORTED") {
+      return document.documentElement.lang === "en"
+        ? "The server did not respond in time"
+        : "Сервер не ответил вовремя";
+    }
   }
-  return "Не удалось выполнить операцию";
+  return document.documentElement.lang === "en"
+    ? "The operation could not be completed"
+    : "Не удалось выполнить операцию";
 }
 
 export default api;

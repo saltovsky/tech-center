@@ -1,54 +1,62 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import api, { errorMessage, setSession } from "../api/client";
 import { Alert } from "../components/Alert";
 import { useAuth } from "../contexts/AuthContext";
+import { localizeApiMessage, useLanguage } from "../contexts/LanguageContext";
 import { useRouter } from "../router";
-import { useState } from "react";
 
-const passwordSchema = z
-  .object({
-    current_password: z.string().min(8, "Минимум 8 символов"),
-    new_password: z.string().min(12, "Минимум 12 символов"),
-    confirm: z.string(),
-  })
-  .refine((value) => value.new_password === value.confirm, {
-    message: "Пароли не совпадают",
-    path: ["confirm"],
-  });
-
-type PasswordForm = z.infer<typeof passwordSchema>;
-
-const passwordFields: Array<{
-  name: keyof PasswordForm;
-  label: string;
-  autoComplete: string;
-}> = [
-  {
-    name: "current_password",
-    label: "Текущий пароль",
-    autoComplete: "current-password",
-  },
-  {
-    name: "new_password",
-    label: "Новый пароль",
-    autoComplete: "new-password",
-  },
-  {
-    name: "confirm",
-    label: "Повторите новый пароль",
-    autoComplete: "new-password",
-  },
-];
+type PasswordForm = {
+  current_password: string;
+  new_password: string;
+  confirm: string;
+};
 
 export function ProfilePage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const { navigate } = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const schema = useMemo(
+    () =>
+      z
+        .object({
+          current_password: z.string().min(8, t("common.min8")),
+          new_password: z.string().min(12, t("common.min12")),
+          confirm: z.string(),
+        })
+        .refine((value) => value.new_password === value.confirm, {
+          message: t("profile.passwordMismatch"),
+          path: ["confirm"],
+        }),
+    [t],
+  );
   const form = useForm<PasswordForm>({
-    resolver: zodResolver(passwordSchema),
+    resolver: zodResolver(schema),
   });
+  const passwordFields: Array<{
+    name: keyof PasswordForm;
+    label: string;
+    autoComplete: string;
+  }> = [
+    {
+      name: "current_password",
+      label: t("profile.currentPassword"),
+      autoComplete: "current-password",
+    },
+    {
+      name: "new_password",
+      label: t("profile.newPassword"),
+      autoComplete: "new-password",
+    },
+    {
+      name: "confirm",
+      label: t("profile.repeatPassword"),
+      autoComplete: "new-password",
+    },
+  ];
 
   const changePassword = async (data: PasswordForm) => {
     setError(null);
@@ -58,7 +66,7 @@ export function ProfilePage() {
         new_password: data.new_password,
       });
       setSession(null);
-      window.alert(response.data.detail);
+      window.alert(localizeApiMessage(response.data.detail));
       navigate("/login", true);
     } catch (err) {
       setError(errorMessage(err));
@@ -68,11 +76,9 @@ export function ProfilePage() {
   return (
     <>
       <div className="mb-4">
-        <span className="page-kicker">Operator / personal security</span>
-        <h1 className="h3 mt-2 mb-2">Профиль пользователя</h1>
-        <p className="text-body-secondary mb-0">
-          Личные данные и безопасность учётной записи
-        </p>
+        <span className="page-kicker">{t("profile.kicker")}</span>
+        <h1 className="h3 mt-2 mb-2">{t("profile.title")}</h1>
+        <p className="text-body-secondary mb-0">{t("profile.description")}</p>
       </div>
 
       <Alert message={error} onClose={() => setError(null)} />
@@ -80,13 +86,13 @@ export function ProfilePage() {
       <div className="row g-4">
         <div className="col-12 col-xl-4">
           <section className="card shadow-sm h-100">
-            <div className="card-header bg-body fw-semibold">Учётная запись</div>
+            <div className="card-header bg-body fw-semibold">{t("profile.account")}</div>
             <div className="card-body d-flex align-items-center gap-3">
               <span className="profile-avatar" aria-hidden="true">
                 {user?.email.charAt(0).toUpperCase()}
               </span>
               <div className="min-w-0">
-                <div className="text-body-secondary small">Email администратора</div>
+                <div className="text-body-secondary small">{t("profile.adminEmail")}</div>
                 <strong className="d-block text-break">{user?.email}</strong>
               </div>
             </div>
@@ -95,7 +101,7 @@ export function ProfilePage() {
 
         <div className="col-12 col-xl-8">
           <section className="card shadow-sm">
-            <div className="card-header bg-body fw-semibold">Смена пароля</div>
+            <div className="card-header bg-body fw-semibold">{t("profile.changePassword")}</div>
             <div className="card-body">
               <form
                 className="profile-password-form"
@@ -123,7 +129,7 @@ export function ProfilePage() {
                   disabled={form.formState.isSubmitting}
                   type="submit"
                 >
-                  Изменить пароль
+                  {t("profile.submitPassword")}
                 </button>
               </form>
             </div>

@@ -46,9 +46,10 @@ export function useRouter(): RouterValue {
 interface AppLinkProps extends PropsWithChildren {
   to: string;
   className?: string | ((active: boolean) => string);
+  "aria-label"?: string;
 }
 
-export function AppLink({ to, className, children }: AppLinkProps) {
+export function AppLink({ to, className, children, "aria-label": ariaLabel }: AppLinkProps) {
   const { path, navigate } = useRouter();
   const active = path === to || (to !== "/" && path.startsWith(`${to}/`));
   const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
@@ -63,9 +64,13 @@ export function AppLink({ to, className, children }: AppLinkProps) {
     navigate(to);
   };
   return (
-    <a href={to} className={typeof className === "function" ? className(active) : className} onClick={handleClick}>
+    <a
+      href={to}
+      aria-label={ariaLabel}
+      className={typeof className === "function" ? className(active) : className}
+      onClick={handleClick}
+    >
       {children}
     </a>
   );
 }
-

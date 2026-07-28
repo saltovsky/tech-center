@@ -1,44 +1,47 @@
 import { useState, type PropsWithChildren } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
+import { useLanguage } from "../contexts/LanguageContext";
 import { AppLink } from "../router";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 const navItems = [
-  { to: "/documents", icon: "bi-grid-1x2", label: "Журнал", index: "01" },
+  { to: "/documents", icon: "bi-grid-1x2", labelKey: "layout.journal", index: "01" },
   {
     to: "/directories/organizations",
     icon: "bi-layers",
-    label: "Справочники",
+    labelKey: "layout.directories",
     index: "02",
   },
-  { to: "/settings", icon: "bi-gear", label: "Настройки", index: "03" },
-];
+  { to: "/settings", icon: "bi-gear", labelKey: "layout.settings", index: "03" },
+] as const;
 
 export function Layout({ children }: PropsWithChildren) {
   const { user, logout } = useAuth();
   const { theme, toggle } = useTheme();
+  const { t } = useLanguage();
   const [menuOpen, setMenuOpen] = useState(false);
   const operatorInitial = user?.email.charAt(0).toUpperCase() ?? "A";
 
   return (
     <div className={`command-shell ${menuOpen ? "menu-open" : ""}`}>
-      <aside className="app-sidebar" aria-label="Боковая навигация">
+      <aside className="app-sidebar" aria-label={t("layout.sidebar")}>
         <AppLink className="command-brand" to="/documents">
           <span className="brand-mark">T</span>
           <span>
             <strong>Tech Center</strong>
-            <small>Asset command</small>
+            <small>{t("layout.assetCommand")}</small>
           </span>
         </AppLink>
 
         <div className="sidebar-status">
           <span className="status-dot" />
-          <span>System live</span>
+          <span>{t("layout.systemLive")}</span>
           <small>v1.0</small>
         </div>
 
         <nav className="command-nav" onClick={() => setMenuOpen(false)}>
-          <span className="nav-caption">Navigation</span>
+          <span className="nav-caption">{t("layout.navigation")}</span>
           {navItems.map((item) => (
             <AppLink
               key={item.to}
@@ -46,7 +49,7 @@ export function Layout({ children }: PropsWithChildren) {
               to={item.to}
             >
               <span className="nav-icon"><i className={`bi ${item.icon}`} /></span>
-              <span>{item.label}</span>
+              <span>{t(item.labelKey)}</span>
               <small>{item.index}</small>
             </AppLink>
           ))}
@@ -55,10 +58,11 @@ export function Layout({ children }: PropsWithChildren) {
         <AppLink
           className={(isActive) => `sidebar-operator ${isActive ? "active" : ""}`}
           to="/profile"
+          aria-label={t("layout.openProfile")}
         >
           <span className="operator-avatar">{operatorInitial}</span>
           <span className="operator-copy">
-            <small>Operator</small>
+            <small>{t("layout.operator")}</small>
             <strong title={user?.email}>{user?.email}</strong>
           </span>
           <i className="bi bi-chevron-right operator-chevron" aria-hidden="true" />
@@ -69,7 +73,7 @@ export function Layout({ children }: PropsWithChildren) {
         <button
           className="sidebar-scrim"
           type="button"
-          aria-label="Закрыть меню"
+          aria-label={t("layout.closeMenu")}
           onClick={() => setMenuOpen(false)}
         />
       )}
@@ -80,7 +84,7 @@ export function Layout({ children }: PropsWithChildren) {
             <button
               className="icon-button mobile-menu-button"
               type="button"
-              aria-label="Открыть меню"
+              aria-label={t("layout.openMenu")}
               aria-expanded={menuOpen}
               onClick={() => setMenuOpen((current) => !current)}
             >
@@ -88,20 +92,21 @@ export function Layout({ children }: PropsWithChildren) {
             </button>
             <span className="live-indicator">
               <span className="status-dot" />
-              <span>Operations online</span>
+              <span>{t("layout.operationsOnline")}</span>
             </span>
           </div>
           <div className="topbar-actions">
             <span className="topbar-time">
-              <small>Last sync</small>
-              <strong>Just now</strong>
+              <small>{t("layout.lastSync")}</small>
+              <strong>{t("layout.justNow")}</strong>
             </span>
+            <LanguageSwitcher compact />
             <button
               className="icon-button"
               type="button"
               onClick={toggle}
-              aria-label={theme === "light" ? "Включить тёмную тему" : "Включить светлую тему"}
-              title="Сменить тему"
+              aria-label={theme === "light" ? t("layout.darkTheme") : t("layout.lightTheme")}
+              title={t("layout.changeTheme")}
             >
               <i className={`bi ${theme === "light" ? "bi-moon" : "bi-sun"}`} />
             </button>
@@ -109,8 +114,8 @@ export function Layout({ children }: PropsWithChildren) {
               className="icon-button danger"
               type="button"
               onClick={() => void logout()}
-              aria-label="Выйти"
-              title="Выйти"
+              aria-label={t("layout.logout")}
+              title={t("layout.logout")}
             >
               <i className="bi bi-box-arrow-right" />
             </button>
@@ -119,8 +124,8 @@ export function Layout({ children }: PropsWithChildren) {
 
         <main className="command-content">{children}</main>
         <footer className="command-footer">
-          <span>Tech Center / Asset Operations</span>
-          <span>Secure administrative workspace</span>
+          <span>{t("layout.footer")}</span>
+          <span>{t("layout.secureWorkspace")}</span>
         </footer>
       </div>
     </div>
